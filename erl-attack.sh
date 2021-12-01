@@ -171,8 +171,10 @@ getArgs() {
 		dumpVars "Positional Arguments" "${POS_ARGS[@]}"
 		dumpVars "Required Arguments" "${REQ_ARGS[@]}"
 		dumpVars "Optional Arguments" "${OPT_ARGS[@]}"
-		cat "${LOG_FILE}"
-		[[ "${EXIT}" != "" ]] && exit 1
+		[[ "${EXIT}" != "" ]] && {
+			cat "${LOG_FILE}"
+			exit 1
+		}
 	}
 }
 
@@ -288,7 +290,7 @@ echo "{\"client_ip\":\"${IP}\",\"client_ua\":\"${VA_UA}\",\"pop\":\"${POP}\"}"
 VA_START="$(date +%s)"
 VA_RESULTS=""
 
-[[ "${GUI_URL}" == "" ]] && GAWK_SCRIPT="{print}"
+[[ "${GUI_URL}" == "" ]] && GAWK_SCRIPT='{sub(/^[^{]*/,""); print}'
 
 [[ "${VA_SCRIPT}" == "" ]] && VA_SCRIPT="${VA_RATE}:${VA_DURATION}"
 IFS=',' read -r -a KV_PAIRS <<< "${VA_SCRIPT}"
