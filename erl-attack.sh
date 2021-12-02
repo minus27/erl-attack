@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+trap ctrl_c INT
+ctrl_c() { exit 1; }
+
 exitOnError() { # $1=ErrorMessage $2=PrintUsageFlag
 	local TMP="$(echo "$0" | sed -E 's#^.*/##')"
 	local REQ_ARGS="$(grep -e "#REQUIRED[=]" $0)"
