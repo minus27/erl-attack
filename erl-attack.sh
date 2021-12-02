@@ -125,13 +125,12 @@ getArgs() {
 				shift; shift
 				;;
 			-w|--delay-window) #OPTIONAL=Delay Window (1/10/60)
-				[[ "$2" =~ ^(1|[16]0)$ ]] || exitOnError "Unexpected Delay Window, i.e. not 1/10/60"
+				[[ "$2" =~ ^(1s|[16]0s)$ ]] || exitOnError "Unexpected Delay Window, i.e. not 1s/10s/60s"
 				DELAY_WINDOW="$2"
 				shift; shift
 				;;
 			-s|--delay-start) #OPTIONAL=Delay Start (0 <= DELAY_START < DELAY_WINDOW)
 				checkIntegerValue "Delay Start" "$2" "0"
-				[[ $2 -ge $DELAY_WINDOW ]] && exitOnError "Delay Start value must be less than Delay Window ($DELAY_WINDOW)"
 				DELAY_START="$2"
 				shift; shift
 				;;
@@ -154,6 +153,11 @@ getArgs() {
 	[[ "${#POSITIONAL[@]}" -eq 0 ]] &&  exitOnError "TARGET_URL not specified" "1"
 	[[ "${#POSITIONAL[@]}" -gt 1 ]] &&  exitOnError "One positional argument expected (TARGET_URL), ${#POSITIONAL[@]} found" "1"
 	VA_TARGET_URL="${POSITIONAL[0]}"
+
+	[[ "${DELAY_WINDOW}" != "" ]] && {
+		DELAY_WINDOW_SECONDS="$(echo "${DELAY_WINDOW}" | sed -E 's/s$//')"
+		[[ "${DELAY_START}" -ge "${DELAY_WINDOW_SECONDS}" ]] && exitOnError "Delay Start (${DELAY_START}) must be less than Delay Window (${DELAY_WINDOW})"
+	}
 
 	POS_ARGS=(VA_TARGET_URL)
 	REQ_ARGS=()
@@ -235,7 +239,7 @@ BEGIN{
 	print POST_DATA > "gawk.tmp"
 	if(LOG==1){ print POST_DATA > "gawk.log" }
 	if(DEBUG==1){ print POST_DATA; next }
-	printf POST_DATA " -> "
+	printf POST_DATA "\n\t-> "
 	system("curl -d '" POST_DATA "' " GUI_URL " " HDRS)
 	print ""
 }
@@ -283,9 +287,10 @@ VA_TARGET_HOSTNAME="$(echo "${VA_TARGET_URL}" | sed -E 's/^https?:\/\/([^\/]+).*
 	[[ "${POP}" == "" ]] && exitOnError "Unknown POP - ${VA_TARGET_POP}"
 	[[ "${POP}" != "${VA_TARGET_POP}" ]] && exitOnError "POP validation failed - ${VA_TARGET_POP} expected, ${POP} found"
 }
-echo "{\"client_ip\":\"${IP}\",\"client_ua\":\"${VA_UA}\",\"pop\":\"${POP}\"}"
 
-[[ "$DELAY_WINDOW" != "" ]] && delayStart "$DELAY_WINDOW" "$DELAY_START"
+[[ "${DELAY_WINDOW}" != "" ]] && delayStart "${DELAY_WINDOW_SECONDS}" "${DELAY_START}"
+
+echo "{\"client_ip\":\"${IP}\",\"client_ua\":\"${VA_UA}\",\"pop\":\"${POP}\"}"
 
 VA_START="$(date +%s)"
 VA_RESULTS=""
