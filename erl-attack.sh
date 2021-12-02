@@ -109,6 +109,11 @@ getArgs() {
 				VA_REPORT_INTERVAL="$2"
 				shift; shift
 				;;
+			-h|--custom-header-name) #OPTIONAL=Vegeta Attack Header Name: Value
+				[[ "$2" =~ ^[-a-zA-Z0-9_]+:[\ -~]+$ ]] || exitOnError "Bad Vegeta Attack Report Interval value"
+				VA_CUSTOM_HEADER="$2"
+				shift; shift
+				;;
 			-u|--user-agent) #OPTIONAL=Vegeta Attack User-Agent
 				VA_UA_SET=1
 				VA_UA="$2"
@@ -252,7 +257,9 @@ runVegetaAttack() { # $1=VA_RATE $2=VA_DURATION
 	VEGETA_ATTACK_ARGS=(-rate="$1" -duration="$2")
 	[[ "${VA_UA_SET}" != "" ]] && VEGETA_ATTACK_ARGS+=(-header="user-agent: ${VA_UA}")
 	[[ "${VA_TARGET_POP}" != "" ]] && VEGETA_ATTACK_ARGS+=(-insecure)
-	echo -e "${VA_TARGET_METHOD} ${VA_TARGET_URL}\nHost: ${VA_TARGET_HOSTNAME}\n" | \
+	let TMP
+	[[ "${VA_CUSTOM_HEADER}" != "" ]] && TMP="\n${VA_CUSTOM_HEADER}"
+	echo -e "${VA_TARGET_METHOD} ${VA_TARGET_URL}\nHost: ${VA_TARGET_HOSTNAME}${TMP}\n" | \
 		vegeta attack "${VEGETA_ATTACK_ARGS[@]}" | \
 		vegeta encode | \
 		vegeta report -every "${VA_REPORT_INTERVAL}" -type json | \
