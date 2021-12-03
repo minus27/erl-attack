@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Version: 2021.12.03.01
+# Version: 2021.12.03.02
 
 trap ctrl_c INT
 ctrl_c() { exit 1; }
@@ -24,10 +24,25 @@ exitOnError() { # $1=ErrorMessage $2=PrintUsageFlag
 	exit 1
 }
 
-printVersion() {
-	[[ "$(grep -cE "^#\s*Version:\s*\S+\s*$" $0)" -ne 1 ]] && exitOnError "Cannot identify script version"
-	local VERSION="$(grep -E "^#\s*Version:\s*\S+\s*$" $0 | grep -Eo "\s*\S+\s*$" | grep -Eo "\S+")"
-	>&2 echo "VERSION: ${VERSION}"
+checkVersion() {
+	local GITHUB_CONTENT="$(curl -s https://raw.githubusercontent.com/minus27/erl-attack/main/erl-attack.sh)"
+	local LOCAL_VERSION="?"
+	local GITHUB_VERSION="?"
+	local REGEXP=("^#\s*Version:\s*\S+\s*$" "\s*\S+\s*$" "\S+")
+	[[ "$(echo "${GITHUB_CONTENT}" | grep -cE "${REGEXP[0]}")" -eq 1 ]] && {
+		GITHUB_VERSION="$(echo "${GITHUB_CONTENT}" | grep -E "${REGEXP[0]}" | grep -Eo "${REGEXP[1]}" | grep -Eo "${REGEXP[2]}")"
+	}
+	[[ "$(grep -cE "${REGEXP[0]}" $0)" -eq 1 ]] && {
+		LOCAL_VERSION="$(grep -E "${REGEXP[0]}" $0 | grep -Eo "${REGEXP[1]}" | grep -Eo "${REGEXP[2]}")"
+	}
+	local MATCH_TEXT="$([[ "${GITHUB_VERSION}" == "${LOCAL_VERSION}" ]] && echo "matches" || echo "does not match")"
+	[[ "${GITHUB_VERSION}" == "?" || "${LOCAL_VERSION}" == "?" ]] && MATCH_TEXT="may or may not match"
+	>&2 echo "GitHub Version (${GITHUB_VERSION}) ${MATCH_TEXT} Local Version (${LOCAL_VERSION})"
+	[[ "$MATCH_TEXT" != "matches" && "${GITHUB_CONTENT}" != "" ]] && {
+		local TMP="$(echo "$0" | sed -E 's#^.*/##').new"
+		echo "${GITHUB_CONTENT}" > "${TMP}"
+		>&2 echo "(GitHub Script saved to ${TMP})"
+	}
 	exit 0
 }
 
@@ -151,8 +166,8 @@ getArgs() {
 				DELAY_START="$2"
 				shift; shift
 				;;
-			-v|--version) #OPTIONAL=Display script version and exit
-				printVersion
+			-v|--check_version) #OPTIONAL=Check local vs. GitHub script versions and exit
+				checkVersion
 				;;
 			-x|--exit) #OPTIONAL=Process arguments and exit
 				EXIT="1"
