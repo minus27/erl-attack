@@ -2,6 +2,8 @@
 trap ctrl_c INT
 ctrl_c() { exit 1; }
 
+VERSION="2021.12.03.00"
+
 exitOnError() { # $1=ErrorMessage $2=PrintUsageFlag
 	local TMP="$(echo "$0" | sed -E 's#^.*/##')"
 	local REQ_ARGS="$(grep -e "#REQUIRED[=]" $0)"
@@ -142,6 +144,10 @@ getArgs() {
 				DELAY_START="$2"
 				shift; shift
 				;;
+			-v|--version) #OPTIONAL=Display script version and exit
+				>&2 echo -e "VERSION: ${VERSION}"
+				exit 1
+				;;
 			-x|--exit) #OPTIONAL=Process arguments and exit
 				EXIT="1"
 				shift
@@ -169,7 +175,7 @@ getArgs() {
 
 	POS_ARGS=(VA_TARGET_URL)
 	REQ_ARGS=()
-	OPT_ARGS=(DELAY_START DELAY_WINDOW GUI_URL LOG OF_NAME POP_URL_TEMPLATE VA_DURATION VA_RATE VA_REPORT_INTERVAL VA_SCRIPT VA_TARGET_METHOD VA_TARGET_POP VA_UA)
+	OPT_ARGS=(DELAY_START DELAY_WINDOW GUI_URL LOG OF_NAME POP_URL_TEMPLATE VA_CUSTOM_HEADER VA_DURATION VA_RATE VA_REPORT_INTERVAL VA_SCRIPT VA_TARGET_METHOD VA_TARGET_POP VA_UA)
 	for NAME in "${REQ_ARGS[@]}"
 	do
 		[[ "${!NAME}" == "" ]] && exitOnError "Value for ${NAME} required" 1
@@ -260,7 +266,7 @@ runVegetaAttack() { # $1=VA_RATE $2=VA_DURATION
 	VEGETA_ATTACK_ARGS=(-rate="$1" -duration="$2")
 	[[ "${VA_UA_SET}" != "" ]] && VEGETA_ATTACK_ARGS+=(-header="user-agent: ${VA_UA}")
 	[[ "${VA_TARGET_POP}" != "" ]] && VEGETA_ATTACK_ARGS+=(-insecure)
-	let TMP
+	local TMP=""
 	[[ "${VA_CUSTOM_HEADER}" != "" ]] && TMP="\n${VA_CUSTOM_HEADER}"
 	echo -e "${VA_TARGET_METHOD} ${VA_TARGET_URL}\nHost: ${VA_TARGET_HOSTNAME}${TMP}\n" | \
 		vegeta attack "${VEGETA_ATTACK_ARGS[@]}" | \
