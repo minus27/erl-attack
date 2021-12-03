@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
+# Version: 2021.12.03.01
+
 trap ctrl_c INT
 ctrl_c() { exit 1; }
-
-VERSION="2021.12.03.00"
 
 exitOnError() { # $1=ErrorMessage $2=PrintUsageFlag
 	local TMP="$(echo "$0" | sed -E 's#^.*/##')"
@@ -22,6 +22,13 @@ exitOnError() { # $1=ErrorMessage $2=PrintUsageFlag
 		}
 	}
 	exit 1
+}
+
+printVersion() {
+	[[ "$(grep -cE "^#\s*Version:\s*\S+\s*$" $0)" -ne 1 ]] && exitOnError "Cannot identify script version"
+	local VERSION="$(grep -E "^#\s*Version:\s*\S+\s*$" $0 | grep -Eo "\s*\S+\s*$" | grep -Eo "\S+")"
+	>&2 echo "VERSION: ${VERSION}"
+	exit 0
 }
 
 toolCheck() { # $1=TOOL_NAME
@@ -145,8 +152,7 @@ getArgs() {
 				shift; shift
 				;;
 			-v|--version) #OPTIONAL=Display script version and exit
-				>&2 echo -e "VERSION: ${VERSION}"
-				exit 1
+				printVersion
 				;;
 			-x|--exit) #OPTIONAL=Process arguments and exit
 				EXIT="1"
